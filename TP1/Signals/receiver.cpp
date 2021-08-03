@@ -39,7 +39,7 @@ int main(int argc, char const *argv[]) {
   cout << "Sinais implementados e seus respectivos códigos:" << endl;
   cout << "SIGHUP  = " << SIGHUP << endl;
   cout << "SIGINT  = " << SIGINT << endl;
-  cout << "SIGQUIT = " << SIGQUIT << " [EXIT]" << endl;
+  cout << "SIGQUIT = " << SIGQUIT << " [EXIT] \n" << endl;
 
   if (wait_type == 0) {
     while (1); // busy wait

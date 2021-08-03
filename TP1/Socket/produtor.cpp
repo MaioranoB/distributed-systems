@@ -1,51 +1,52 @@
 #include <sys/socket.h>
-#include <stdlib.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
-#include <signal.h>
 #include <unistd.h>
-#include <stdlib.h>
-#include <string.h>
 #include <iostream>
-#include <math.h>
 
 #define PORT 1512
+#define BUFFER_SIZE 20
 
 using namespace std;
 
 int main() {
-    int howMany, recieved;
+    int howMany, SOCKET;
+    struct sockaddr_in serverAddr;
+    srand(time(NULL)); // seed
+
     cout << "Quantos números aleatórios você quer saber se são primos? (Não esqueça de rodar o consumidor)" << endl;
     cin >> howMany;
-    int sock = 0;
-    struct sockaddr_in serv_addr;
+    cout << endl;
 
-    if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-        cout << "Erro criando o socket." << endl;
-        return -1;
+    SOCKET = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP); // domain, type, protocol
+    if (SOCKET < 0) {
+        cout << "Erro ao abir o socket." << endl;
+        exit(EXIT_FAILURE);
     }
 
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(PORT);
-    serv_addr.sin_addr.s_addr = INADDR_ANY;
+    serverAddr.sin_family = AF_INET; // IPv4
+    serverAddr.sin_port = htons(PORT); // Porta
+    serverAddr.sin_addr.s_addr = INADDR_ANY; // Todas as interfaces de rede
 
-    if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
-        printf("Erro ao conectar no socket do consumidor.");
-        return -1;
+    if (connect(SOCKET, (struct sockaddr *)&serverAddr, sizeof(serverAddr)) < 0) {
+        cout << "Falha ao se conectar ao socket na porta " << PORT << endl;
+        close(SOCKET);
+        exit(EXIT_FAILURE);
     }
 
-    int start_n = 1;
-    char buffer[30];
+    int product = 1;
+    char socket_msg[BUFFER_SIZE];
     for (; howMany > 0; howMany--) {
-        start_n = start_n + rand() % 100 + 1;
-        sprintf(buffer, "%d", start_n);
-        cout << start_n << " é primo?" << endl;
-        send(sock, buffer, sizeof(char) * 30, 0);
-        recieved = read(sock, buffer, 30);
-        cout << "[CONSUMIDOR]: " << buffer << endl;
+        cout << product << " é primo?" << endl;
+        sprintf(socket_msg, "%d", product);
+        write(SOCKET, &socket_msg, sizeof(char) * BUFFER_SIZE);
+        read(SOCKET, &socket_msg, sizeof(char) * BUFFER_SIZE);
+        cout << "[CONSUMIDOR]: " << socket_msg << endl;
+        product += rand() % 100 + 1;
     }
 
-    sprintf(buffer, "%d", 0);
-    send(sock, buffer, sizeof(char) * 30, 0);
+    sprintf(socket_msg, "%d", 0);
+    write(SOCKET, &socket_msg, sizeof(char) * BUFFER_SIZE);
+    close(SOCKET);
+
     return 0;
 }

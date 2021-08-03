@@ -1,15 +1,11 @@
 #include <iostream>
-#include <stdlib.h>
 #include <unistd.h>
-#include <stdio.h>
 #include <sys/socket.h>
-#include <stdlib.h>
 #include <netinet/in.h>
-#include <signal.h>
-#include <string.h>
 #include <math.h>
 
 #define PORT 1512
+#define BUFFER_SIZE 20
 
 using namespace std;
 
@@ -23,47 +19,49 @@ bool ehPrimo(int x) {
 }
 
 int main() {
-    char buffer[20];
-    int produtorId, novoSocket, recieved;
+    int SOCKET, novoSocket;
     struct sockaddr_in addr;
-    int addrSize = sizeof(addr);
+    socklen_t addrLen = sizeof(addr);
     
     addr.sin_family = AF_INET;
     addr.sin_addr.s_addr = INADDR_ANY;
     addr.sin_port = htons(PORT);
 
+    SOCKET = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
     // Tratando os erros
-    if ((produtorId = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
-        cout << "Erro criando o socket" << endl;
-        return 1;
+    if (SOCKET < 0) {
+        cout << "Erro ao abrir o socket" << endl;
+        exit(EXIT_FAILURE);
     }
-    if (bind(produtorId, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+    if (bind(SOCKET, (struct sockaddr *)&addr, addrLen) < 0) {
         cout << "Erro no bind" << endl;
-        return 1;
+        exit(EXIT_FAILURE);
     }
-    if (listen(produtorId, 1) < 0) {
+    if (listen(SOCKET, 1) < 0) {
         cout << "Erro no listen" << endl;
-        return 1;
+        exit(EXIT_FAILURE);
     }
 
     cout << "Consumidor escutando na porta " << PORT << endl;
-    novoSocket = accept(produtorId, (struct sockaddr *)&addr, (socklen_t *)&addrSize);
+    novoSocket = accept(SOCKET, (struct sockaddr *)&addr, &addrLen);
     if (novoSocket < 0) {
         cout << "Erro no aceite de nova conexão" << endl;
-        return 1;
+        exit(EXIT_FAILURE);
     }
-
+    
+    char socket_msg[BUFFER_SIZE];
+    int received;
     while (true) {
-        recieved = read(novoSocket, buffer, sizeof(char) * 30);
-        int number = atoi(buffer);
-        if (number == 0)
+        read(novoSocket, &socket_msg, sizeof(char) * BUFFER_SIZE);
+        received = atoi(socket_msg);
+        if (received == 0)
             break;
-        cout << "Recebi " << number << endl;
-        char response[30];
-        sprintf(response, "%i%s", number, (ehPrimo(number) ? " é." : " não é."));
-        send(novoSocket, response, sizeof(char) * 30, 0);
+        cout << "Recebi " << received << endl;
+        sprintf(socket_msg, "%d %s.", received, (ehPrimo(received) ? "é" : "não é"));
+        write(novoSocket, &socket_msg, sizeof(char) * BUFFER_SIZE);
     }
 
-    close(produtorId);
+    close(SOCKET);
     return 0;
 }
