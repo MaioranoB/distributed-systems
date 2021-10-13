@@ -18,9 +18,15 @@ int openSocketFD();
 void request(int socket, int id);
 void release(int socket, int id);
 
-int getTimeStamp() {
-  chrono::milliseconds ms = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch());
-  return ms.count();
+// https://gist.github.com/bschlinker/844a88c09dcf7a61f6a8df1e52af7730
+string getTimeStamp() {
+  // get a precise timestamp as a string
+  const auto now = chrono::system_clock::now();
+  const auto nowAsTimeT = chrono::system_clock::to_time_t(now);
+  const auto nowMs = chrono::duration_cast<chrono::milliseconds>(now.time_since_epoch()) % 1000;
+  stringstream nowSs;
+  nowSs << put_time(localtime(&nowAsTimeT), "%T") << '.' << setfill('0') << setw(3) << nowMs.count();
+  return nowSs.str();
 }
 
 int main(int argc, char const *argv[]) {
@@ -28,12 +34,13 @@ int main(int argc, char const *argv[]) {
   int r = atoi(argv[2]); // r repetições
   int k = atoi(argv[3]); // k segundos
 
-  int Socket, timeStamp;
+  int Socket;
+  string timeStamp;
   // pid_t real_pid;
   
   ofstream file;
   file.open("resultado.txt", ios::trunc);
-  file << "timeStamp   ,pid" << endl;
+  file << "timeStamp   , pid" << endl;
   file.close();
 
   for (int pid = 1; pid <= n; pid++) {
@@ -44,7 +51,7 @@ int main(int argc, char const *argv[]) {
         request(Socket, pid);
         timeStamp = getTimeStamp();
         file.open("resultado.txt", ios::app); // abrir o arquivo em modo append
-        file << timeStamp << "," << pid << endl;
+        file << timeStamp << ", " << pid << endl;
         file.close();
         sleep(k);
         release(Socket, pid);
